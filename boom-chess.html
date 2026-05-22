@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOOM CHESS — Explosive Chess</title>
+  <style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,140,0,0.12), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(90,0,128,0.18), transparent 40%),
+    linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  color: #f4f4f4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 48px;
+  overflow-x: hidden;
+}
+
+.shake-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  font-size: 2.6rem;
+  margin: 0 0 6px;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #ffd54a, #ff8c00, #ff2a2a, #ff8c00, #ffd54a);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 30px rgba(255, 140, 0, 0.4);
+  animation: glow 4s linear infinite;
+}
+
+@keyframes glow {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+#status {
+  font-size: 1.25rem;
+  margin: 6px 0 14px;
+  min-height: 1.6em;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+#status.winner {
+  font-size: 1.6rem;
+  color: #ffd54a;
+  text-shadow: 0 0 12px #ff8c00, 0 0 24px #ff2a2a;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 64px);
+  grid-template-rows: repeat(8, 64px);
+  border: 5px solid #2a1810;
+  border-radius: 6px;
+  box-shadow:
+    0 12px 50px rgba(0,0,0,0.7),
+    0 0 0 2px #6b3a1a,
+    inset 0 0 0 1px rgba(0,0,0,0.4);
+  position: relative;
+}
+
+.square {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.square.light { background: #f0d9b5; }
+.square.dark  { background: #b58863; }
+
+.square.selected {
+  background: #f7e9a0 !important;
+  box-shadow: inset 0 0 0 4px #4caf50;
+  z-index: 2;
+}
+.square.dark.selected { background: #c9a76d !important; }
+
+.square.move-empty::before {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(60, 180, 60, 0.55);
+  box-shadow: 0 0 8px rgba(60, 180, 60, 0.7);
+  pointer-events: none;
+}
+
+.square.move-capture {
+  box-shadow: inset 0 0 0 4px rgba(255, 40, 40, 0.75);
+}
+.square.move-capture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, transparent 45%, rgba(255,40,40,0.35) 70%);
+  pointer-events: none;
+}
+
+.piece {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  user-select: none;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.12s;
+}
+
+.square:hover .piece { transform: scale(1.08); }
+
+.piece.white {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #d8d8d8 70%, #aaaaaa);
+  box-shadow:
+    0 3px 6px rgba(0,0,0,0.45),
+    inset 0 0 0 2px #888;
+}
+.piece.black {
+  background: radial-gradient(circle at 35% 30%, #555, #1a1a1a 70%, #000);
+  box-shadow:
+    0 3px 6px rgba(0,0,0,0.7),
+    inset 0 0 0 2px #000;
+}
+
+/* Explosions */
+.explosion {
+  position: absolute;
+  inset: -8px;
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 10;
+  background: radial-gradient(circle,
+    #ffffff 0%,
+    #fff7b0 12%,
+    #ffd54a 25%,
+    #ff8c00 45%,
+    #ff2a2a 65%,
+    rgba(120, 20, 0, 0.6) 80%,
+    transparent 95%);
+  box-shadow:
+    0 0 30px 8px #ff8c00,
+    0 0 60px 16px rgba(255, 42, 42, 0.7);
+  animation: explode 0.6s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes explode {
+  0%   { transform: scale(0.2); opacity: 0.9; }
+  35%  { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(2.0); opacity: 0; }
+}
+
+.explosion.nuke {
+  inset: -16px;
+  background: radial-gradient(circle,
+    #ffffff 0%,
+    #ffffff 8%,
+    #fff200 18%,
+    #ff8c00 38%,
+    #ff2a2a 58%,
+    #7a0080 78%,
+    rgba(40, 0, 60, 0.7) 90%,
+    transparent 100%);
+  box-shadow:
+    0 0 50px 16px #ff8c00,
+    0 0 100px 32px #ff2a2a,
+    0 0 160px 50px rgba(122, 0, 128, 0.7);
+  animation: nuke 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes nuke {
+  0%   { transform: scale(0.1); opacity: 1; }
+  25%  { transform: scale(2.0); opacity: 1; }
+  60%  { transform: scale(2.6); opacity: 0.95; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+.explosion.line {
+  background: radial-gradient(ellipse,
+    #ffffff 0%, #ffd54a 25%, #ff6a00 55%, #ff2a2a 75%, transparent 95%);
+  animation: explode 0.55s ease-out forwards;
+}
+
+.explosion.x {
+  background: radial-gradient(circle,
+    #fff 0%, #ffd54a 25%, #ff6a00 50%, transparent 75%);
+  animation: explode 0.5s ease-out forwards;
+}
+
+.explosion.plus {
+  inset: 4px;
+  background: radial-gradient(circle, #fff 0%, #ffd54a 35%, #ff6a00 70%, transparent 100%);
+  box-shadow: 0 0 16px 4px #ff8c00;
+  animation: explode 0.45s ease-out forwards;
+}
+
+/* Shake on detonation */
+@keyframes shake-small {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -2px); }
+  80% { transform: translate(2px, 2px); }
+}
+@keyframes shake-big {
+  0%, 100% { transform: translate(0, 0); }
+  8%  { transform: translate(-12px, -6px) rotate(-0.4deg); }
+  16% { transform: translate(12px, 6px)   rotate(0.4deg); }
+  24% { transform: translate(-10px, 7px)  rotate(-0.3deg); }
+  32% { transform: translate(10px, -7px)  rotate(0.3deg); }
+  40% { transform: translate(-7px, 4px); }
+  50% { transform: translate(7px, -4px); }
+  60% { transform: translate(-5px, 2px); }
+  70% { transform: translate(5px, -2px); }
+  80% { transform: translate(-2px, 1px); }
+  90% { transform: translate(2px, -1px); }
+}
+.shake-wrap.shaking-small { animation: shake-small 0.35s ease-in-out; }
+.shake-wrap.shaking-big   { animation: shake-big 0.8s ease-in-out; }
+
+/* Controls */
+.controls {
+  margin-top: 18px;
+}
+#reset {
+  background: linear-gradient(180deg, #ff8c00, #ff2a2a);
+  color: white;
+  border: 2px solid #2a1810;
+  padding: 12px 22px;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 80, 0, 0.4);
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+#reset:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 80, 0, 0.6); }
+#reset:active { transform: translateY(0); }
+
+/* Legend */
+.legend {
+  margin-top: 36px;
+  max-width: 640px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid rgba(255, 140, 0, 0.3);
+}
+.legend h2 {
+  margin: 0 0 8px;
+  color: #ffd54a;
+}
+.tagline { margin: 0 0 14px; opacity: 0.9; }
+.legend-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255,255,255,0.04);
+  padding: 10px 12px;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+.lg-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 38px;
+  text-align: center;
+}
+.warning {
+  margin-top: 14px;
+  color: #ffb37a;
+  font-weight: bold;
+  text-align: center;
+}
+
+@media (max-width: 580px) {
+  #board {
+    grid-template-columns: repeat(8, 40px);
+    grid-template-rows: repeat(8, 40px);
+  }
+  .piece { width: 34px; height: 34px; font-size: 20px; }
+  h1 { font-size: 1.8rem; }
+}
+
+</style>
+</head>
+<body>
+  <div class="shake-wrap" id="shake">
+    <h1>💥 BOOM CHESS 💥</h1>
+    <div id="status">White's turn</div>
+    <div id="board"></div>
+    <div class="controls">
+      <button id="reset">🔁 New Game</button>
+    </div>
+  </div>
+
+  <section class="legend">
+    <h2>How it works</h2>
+    <p class="tagline">Pawns and Kings move normally. Everything else has been replaced with an explosive. Every capture causes a detonation — and explosions don't care which side a piece is on.</p>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <span class="lg-icon">👑</span>
+        <div><b>King</b><br>Standard king, moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🪖</span>
+        <div><b>Pawn</b><br>Moves like a pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hitting the 4 orthogonal neighbors of the target. Promotes to ☢️ Nuker at the end rank.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">💣</span>
+        <div><b>Bomber</b> <i>(knight)</i><br>L-shaped jumps. On capture: <b>3×3 blast</b> centered on the landing square. The bomber dies in its own explosion.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🧨</span>
+        <div><b>Sapper</b> <i>(bishop)</i><br>Slides diagonally. On capture: <b>X-pattern</b> shrapnel hits the 4 diagonal neighbors of the target. Sapper survives.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🚀</span>
+        <div><b>Rocket</b> <i>(rook)</i><br>Slides orthogonally. On capture: blast <b>continues 2 more squares</b> in the firing direction, vaporizing whatever stands behind. Rocket survives at the impact site.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">☢️</span>
+        <div><b>Nuker</b> <i>(queen)</i><br>Slides in all 8 directions. On capture: <b>5×5 nuclear blast</b> — total annihilation. The nuker dies in the fallout.</div>
+      </div>
+    </div>
+    <p class="warning">⚠ Every blast kills <b>everything</b> in its radius. Watch where you put your king.</p>
+  </section>
+
+  <script>
+// BOOM CHESS — explosive chess with custom pieces
+// Pawns and Kings are standard; every other piece is replaced with an explosive.
+
+const SIZE = 8;
+
+const PIECE_INFO = {
+  king:   { symbol: '👑', name: 'King' },
+  pawn:   { symbol: '🪖', name: 'Pawn' },
+  bomber: { symbol: '💣', name: 'Bomber' },  // replaces knight
+  sapper: { symbol: '🧨', name: 'Sapper' },  // replaces bishop
+  rocket: { symbol: '🚀', name: 'Rocket' },  // replaces rook
+  nuker:  { symbol: '☢️', name: 'Nuker'  },  // replaces queen
+};
+
+let board;        // 2D array of {type, color} | null
+let turn;         // 'white' | 'black'
+let selected;     // {r, c} | null
+let legalMoves;   // [{r, c, capture}]
+let gameOver;
+let winner;
+let busy;         // true while an animation is playing
+
+function initBoard() {
+  board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+
+  const backRank = ['rocket','bomber','sapper','nuker','king','sapper','bomber','rocket'];
+  for (let c = 0; c < SIZE; c++) {
+    board[0][c] = { type: backRank[c], color: 'black' };
+    board[1][c] = { type: 'pawn',      color: 'black' };
+    board[6][c] = { type: 'pawn',      color: 'white' };
+    board[7][c] = { type: backRank[c], color: 'white' };
+  }
+
+  turn = 'white';
+  selected = null;
+  legalMoves = [];
+  gameOver = false;
+  winner = null;
+  busy = false;
+}
+
+function inBounds(r, c) {
+  return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+}
+
+// ----- Movement -----
+
+function getMoves(r, c) {
+  const piece = board[r][c];
+  if (!piece) return [];
+
+  const moves = [];
+  const { type, color } = piece;
+
+  const slide = (dirs) => {
+    for (const [dr, dc] of dirs) {
+      for (let i = 1; i < SIZE; i++) {
+        const nr = r + dr * i, nc = c + dc * i;
+        if (!inBounds(nr, nc)) break;
+        const t = board[nr][nc];
+        if (!t) {
+          moves.push({ r: nr, c: nc, capture: false });
+        } else {
+          if (t.color !== color) moves.push({ r: nr, c: nc, capture: true });
+          break;
+        }
+      }
+    }
+  };
+
+  if (type === 'king') {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nr = r + dr, nc = c + dc;
+      if (!inBounds(nr, nc)) continue;
+      const t = board[nr][nc];
+      if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
+    }
+  } else if (type === 'pawn') {
+    const dir = color === 'white' ? -1 : 1;
+    const startRow = color === 'white' ? 6 : 1;
+    const fr1 = r + dir;
+    if (inBounds(fr1, c) && !board[fr1][c]) {
+      moves.push({ r: fr1, c, capture: false });
+      const fr2 = r + 2 * dir;
+      if (r === startRow && inBounds(fr2, c) && !board[fr2][c]) {
+        moves.push({ r: fr2, c, capture: false });
+      }
+    }
+    for (const dc of [-1, 1]) {
+      const nr = r + dir, nc = c + dc;
+      if (inBounds(nr, nc) && board[nr][nc] && board[nr][nc].color !== color) {
+        moves.push({ r: nr, c: nc, capture: true });
+      }
+    }
+  } else if (type === 'bomber') {
+    const jumps = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+    for (const [dr, dc] of jumps) {
+      const nr = r + dr, nc = c + dc;
+      if (!inBounds(nr, nc)) continue;
+      const t = board[nr][nc];
+      if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
+    }
+  } else if (type === 'sapper') {
+    slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
+  } else if (type === 'rocket') {
+    slide([[-1,0],[1,0],[0,-1],[0,1]]);
+  } else if (type === 'nuker') {
+    slide([[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]);
+  }
+
+  return moves;
+}
+
+// ----- Explosions -----
+// Returns { squares: [{r,c}], css: 'normal'|'nuke'|'line'|'x'|'plus', shake: 'small'|'big'|null }
+function getBlast(piece, fromR, fromC, toR, toC) {
+  const set = new Set();
+  const add = (r, c) => { if (inBounds(r, c)) set.add(r * SIZE + c); };
+
+  let css = 'normal';
+  let shake = 'small';
+
+  switch (piece.type) {
+    case 'pawn': {
+      // small + around landing (target dies from move itself)
+      add(toR - 1, toC); add(toR + 1, toC);
+      add(toR, toC - 1); add(toR, toC + 1);
+      css = 'plus';
+      shake = 'small';
+      break;
+    }
+    case 'bomber': {
+      // 3x3 around landing — bomber goes with it
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(toR + dr, toC + dc);
+      css = 'normal';
+      shake = 'small';
+      break;
+    }
+    case 'sapper': {
+      // X-pattern: 4 diagonal neighbors
+      add(toR - 1, toC - 1); add(toR - 1, toC + 1);
+      add(toR + 1, toC - 1); add(toR + 1, toC + 1);
+      css = 'x';
+      shake = 'small';
+      break;
+    }
+    case 'rocket': {
+      // Two squares past impact, in direction of travel
+      const dr = Math.sign(toR - fromR);
+      const dc = Math.sign(toC - fromC);
+      add(toR + dr, toC + dc);
+      add(toR + dr * 2, toC + dc * 2);
+      css = 'line';
+      shake = 'small';
+      break;
+    }
+    case 'nuker': {
+      // 5x5 around landing — nuker dies in it
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) add(toR + dr, toC + dc);
+      css = 'nuke';
+      shake = 'big';
+      break;
+    }
+    default:
+      shake = null;
+  }
+
+  const squares = [...set].map(n => ({ r: Math.floor(n / SIZE), c: n % SIZE }));
+  return { squares, css, shake };
+}
+
+// ----- Move execution -----
+
+async function makeMove(toR, toC) {
+  if (busy || gameOver) return;
+  busy = true;
+
+  const { r: fromR, c: fromC } = selected;
+  const piece = board[fromR][fromC];
+  const isCapture = !!board[toR][toC];
+
+  // Execute move
+  board[fromR][fromC] = null;
+  board[toR][toC] = piece;
+
+  // Pawn promotion → Nuker
+  if (piece.type === 'pawn') {
+    if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
+      piece.type = 'nuker';
+    }
+  }
+
+  selected = null;
+  legalMoves = [];
+  render();
+
+  if (isCapture) {
+    const blast = getBlast(piece, fromR, fromC, toR, toC);
+    await playExplosion(blast);
+
+    // Detonate: clear every square in blast radius
+    for (const { r, c } of blast.squares) {
+      board[r][c] = null;
+    }
+  }
+
+  // Check kings
+  let whiteKing = false, blackKing = false;
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const p = board[r][c];
+    if (p && p.type === 'king') {
+      if (p.color === 'white') whiteKing = true; else blackKing = true;
+    }
+  }
+
+  if (!whiteKing || !blackKing) {
+    gameOver = true;
+    if (!whiteKing && !blackKing) winner = 'draw';
+    else if (!whiteKing) winner = 'black';
+    else winner = 'white';
+  } else {
+    turn = turn === 'white' ? 'black' : 'white';
+  }
+
+  render();
+  busy = false;
+}
+
+// ----- Animation -----
+
+function playExplosion(blast) {
+  return new Promise(resolve => {
+    const boardEl = document.getElementById('board');
+    const wrap = document.getElementById('shake');
+
+    const overlays = [];
+    for (const { r, c } of blast.squares) {
+      const sq = boardEl.children[r * SIZE + c];
+      if (!sq) continue;
+      const el = document.createElement('div');
+      el.className = 'explosion ' + blast.css;
+      // Slight stagger for organic feel
+      el.style.animationDelay = `${Math.random() * 80}ms`;
+      sq.appendChild(el);
+      overlays.push(el);
+    }
+
+    if (blast.shake === 'big') wrap.classList.add('shaking-big');
+    else if (blast.shake === 'small') wrap.classList.add('shaking-small');
+
+    const duration = blast.css === 'nuke' ? 950 : 600;
+    setTimeout(() => {
+      wrap.classList.remove('shaking-small', 'shaking-big');
+      for (const el of overlays) el.remove();
+      resolve();
+    }, duration);
+  });
+}
+
+// ----- Rendering -----
+
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+      sq.dataset.r = r;
+      sq.dataset.c = c;
+
+      if (selected && selected.r === r && selected.c === c) sq.classList.add('selected');
+
+      const move = legalMoves.find(m => m.r === r && m.c === c);
+      if (move) sq.classList.add(move.capture ? 'move-capture' : 'move-empty');
+
+      const p = board[r][c];
+      if (p) {
+        const pe = document.createElement('div');
+        pe.className = 'piece ' + p.color;
+        pe.textContent = PIECE_INFO[p.type].symbol;
+        pe.title = `${p.color} ${PIECE_INFO[p.type].name}`;
+        sq.appendChild(pe);
+      }
+
+      sq.addEventListener('click', () => onSquareClick(r, c));
+      boardEl.appendChild(sq);
+    }
+  }
+
+  const status = document.getElementById('status');
+  status.classList.remove('winner');
+  if (gameOver) {
+    status.classList.add('winner');
+    if (winner === 'draw') status.textContent = '💥 DOUBLE KO — DRAW! 💥';
+    else status.textContent = `🏆 ${winner.toUpperCase()} WINS! 🏆`;
+  } else {
+    const t = turn === 'white' ? 'White' : 'Black';
+    status.textContent = `${t}'s turn`;
+  }
+}
+
+function onSquareClick(r, c) {
+  if (busy || gameOver) return;
+  const piece = board[r][c];
+
+  if (selected) {
+    const move = legalMoves.find(m => m.r === r && m.c === c);
+    if (move) { makeMove(r, c); return; }
+
+    if (piece && piece.color === turn) {
+      selected = { r, c };
+      legalMoves = getMoves(r, c);
+    } else {
+      selected = null;
+      legalMoves = [];
+    }
+    render();
+  } else if (piece && piece.color === turn) {
+    selected = { r, c };
+    legalMoves = getMoves(r, c);
+    render();
+  }
+}
+
+document.getElementById('reset').addEventListener('click', () => {
+  if (busy) return;
+  initBoard();
+  render();
+});
+
+initBoard();
+render();
+
+</script>
+</body>
+</html>
