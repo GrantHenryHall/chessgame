@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOOM CHESS — Explosive Chess</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shake-wrap" id="shake">
+    <h1>💥 BOOM CHESS 💥</h1>
+    <div id="status">White's turn</div>
+    <div id="board"></div>
+    <div class="controls">
+      <button id="reset">🔁 New Game</button>
+    </div>
+  </div>
+
+  <section class="legend">
+    <h2>How it works</h2>
+    <p class="tagline">Pawns and Kings move normally. Everything else has been replaced with an explosive. Every capture causes a detonation — and explosions don't care which side a piece is on.</p>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <span class="lg-icon">👑</span>
+        <div><b>King</b><br>Standard king, moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🪖</span>
+        <div><b>Pawn</b><br>Moves like a pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hitting the 4 orthogonal neighbors of the target. Promotes to ☢️ Nuker at the end rank.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">💣</span>
+        <div><b>Bomber</b> <i>(knight)</i><br>L-shaped jumps. On capture: <b>3×3 blast</b> centered on the landing square. The bomber dies in its own explosion.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🧨</span>
+        <div><b>Sapper</b> <i>(bishop)</i><br>Slides diagonally. On capture: <b>X-pattern</b> shrapnel hits the 4 diagonal neighbors of the target. Sapper survives.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">🚀</span>
+        <div><b>Rocket</b> <i>(rook)</i><br>Slides orthogonally. On capture: blast <b>continues 2 more squares</b> in the firing direction, vaporizing whatever stands behind. Rocket survives at the impact site.</div>
+      </div>
+      <div class="legend-item">
+        <span class="lg-icon">☢️</span>
+        <div><b>Nuker</b> <i>(queen)</i><br>Slides in all 8 directions. On capture: <b>5×5 nuclear blast</b> — total annihilation. The nuker dies in the fallout.</div>
+      </div>
+    </div>
+    <p class="warning">⚠ Every blast kills <b>everything</b> in its radius. Watch where you put your king.</p>
+  </section>
+
+  <script src="game.js"></script>
+</body>
+</html>
