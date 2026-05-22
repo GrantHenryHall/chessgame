@@ -242,6 +242,34 @@ h1 {
 /* Controls */
 .controls {
   margin-top: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  font-weight: bold;
+  color: #f4f4f4;
+}
+.ai-toggle input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #ff8c00;
+}
+#status.thinking {
+  color: #9adcff;
+  text-shadow: 0 0 10px rgba(80, 180, 255, 0.6);
 }
 #reset {
   background: linear-gradient(180deg, #ff8c00, #ff2a2a);

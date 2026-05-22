@@ -249,6 +249,34 @@ h1 {
 /* Controls */
 .controls {
   margin-top: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  font-weight: bold;
+  color: #f4f4f4;
+}
+.ai-toggle input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #ff8c00;
+}
+#status.thinking {
+  color: #9adcff;
+  text-shadow: 0 0 10px rgba(80, 180, 255, 0.6);
 }
 #reset {
   background: linear-gradient(180deg, #ff8c00, #ff2a2a);
@@ -324,6 +352,10 @@ h1 {
     <div id="status">White's turn</div>
     <div id="board"></div>
     <div class="controls">
+      <label class="ai-toggle">
+        <input type="checkbox" id="ai-toggle" checked>
+        <span>🤖 Play vs AI (Black)</span>
+      </label>
       <button id="reset">🔁 New Game</button>
     </div>
   </div>
@@ -361,8 +393,8 @@ h1 {
   </section>
 
   <script>
-// BOOM CHESS — explosive chess with custom pieces
-// Pawns and Kings are standard; every other piece is replaced with an explosive.
+// BOOM CHESS — explosive chess with custom pieces + AI opponent
+// Pawns and Kings move normally; every other piece is replaced with an explosive.
 
 const SIZE = 8;
 
@@ -375,17 +407,18 @@ const PIECE_INFO = {
   nuker:  { symbol: '☢️', name: 'Nuker'  },  // replaces queen
 };
 
-let board;        // 2D array of {type, color} | null
-let turn;         // 'white' | 'black'
-let selected;     // {r, c} | null
-let legalMoves;   // [{r, c, capture}]
-let gameOver;
-let winner;
-let busy;         // true while an animation is playing
+const PIECE_VALUE = {
+  king: 10000, nuker: 9, rocket: 5, sapper: 3.5, bomber: 3.5, pawn: 1,
+};
+
+let board, turn, selected, legalMoves, gameOver, winner, busy;
+let aiEnabled = true;
+const aiColor = 'black';
+
+// ----- Setup -----
 
 function initBoard() {
   board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-
   const backRank = ['rocket','bomber','sapper','nuker','king','sapper','bomber','rocket'];
   for (let c = 0; c < SIZE; c++) {
     board[0][c] = { type: backRank[c], color: 'black' };
@@ -393,7 +426,6 @@ function initBoard() {
     board[6][c] = { type: 'pawn',      color: 'white' };
     board[7][c] = { type: backRank[c], color: 'white' };
   }
-
   turn = 'white';
   selected = null;
   legalMoves = [];
@@ -406,12 +438,15 @@ function inBounds(r, c) {
   return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
 }
 
-// ----- Movement -----
+function cloneBoard(b) {
+  return b.map(row => row.map(cell => cell ? { ...cell } : null));
+}
 
-function getMoves(r, c) {
-  const piece = board[r][c];
+// ----- Movement (pure: takes board state) -----
+
+function getMovesOn(b, r, c) {
+  const piece = b[r][c];
   if (!piece) return [];
-
   const moves = [];
   const { type, color } = piece;
 
@@ -420,13 +455,9 @@ function getMoves(r, c) {
       for (let i = 1; i < SIZE; i++) {
         const nr = r + dr * i, nc = c + dc * i;
         if (!inBounds(nr, nc)) break;
-        const t = board[nr][nc];
-        if (!t) {
-          moves.push({ r: nr, c: nc, capture: false });
-        } else {
-          if (t.color !== color) moves.push({ r: nr, c: nc, capture: true });
-          break;
-        }
+        const t = b[nr][nc];
+        if (!t) moves.push({ r: nr, c: nc, capture: false });
+        else { if (t.color !== color) moves.push({ r: nr, c: nc, capture: true }); break; }
       }
     }
   };
@@ -436,23 +467,23 @@ function getMoves(r, c) {
       if (!dr && !dc) continue;
       const nr = r + dr, nc = c + dc;
       if (!inBounds(nr, nc)) continue;
-      const t = board[nr][nc];
+      const t = b[nr][nc];
       if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
     }
   } else if (type === 'pawn') {
     const dir = color === 'white' ? -1 : 1;
     const startRow = color === 'white' ? 6 : 1;
     const fr1 = r + dir;
-    if (inBounds(fr1, c) && !board[fr1][c]) {
+    if (inBounds(fr1, c) && !b[fr1][c]) {
       moves.push({ r: fr1, c, capture: false });
       const fr2 = r + 2 * dir;
-      if (r === startRow && inBounds(fr2, c) && !board[fr2][c]) {
+      if (r === startRow && inBounds(fr2, c) && !b[fr2][c]) {
         moves.push({ r: fr2, c, capture: false });
       }
     }
     for (const dc of [-1, 1]) {
       const nr = r + dir, nc = c + dc;
-      if (inBounds(nr, nc) && board[nr][nc] && board[nr][nc].color !== color) {
+      if (inBounds(nr, nc) && b[nr][nc] && b[nr][nc].color !== color) {
         moves.push({ r: nr, c: nc, capture: true });
       }
     }
@@ -461,7 +492,7 @@ function getMoves(r, c) {
     for (const [dr, dc] of jumps) {
       const nr = r + dr, nc = c + dc;
       if (!inBounds(nr, nc)) continue;
-      const t = board[nr][nc];
+      const t = b[nr][nc];
       if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
     }
   } else if (type === 'sapper') {
@@ -475,8 +506,10 @@ function getMoves(r, c) {
   return moves;
 }
 
+function getMoves(r, c) { return getMovesOn(board, r, c); }
+
 // ----- Explosions -----
-// Returns { squares: [{r,c}], css: 'normal'|'nuke'|'line'|'x'|'plus', shake: 'small'|'big'|null }
+
 function getBlast(piece, fromR, fromC, toR, toC) {
   const set = new Set();
   const add = (r, c) => { if (inBounds(r, c)) set.add(r * SIZE + c); };
@@ -485,46 +518,26 @@ function getBlast(piece, fromR, fromC, toR, toC) {
   let shake = 'small';
 
   switch (piece.type) {
-    case 'pawn': {
-      // small + around landing (target dies from move itself)
+    case 'pawn':
       add(toR - 1, toC); add(toR + 1, toC);
       add(toR, toC - 1); add(toR, toC + 1);
-      css = 'plus';
-      shake = 'small';
-      break;
-    }
-    case 'bomber': {
-      // 3x3 around landing — bomber goes with it
+      css = 'plus'; break;
+    case 'bomber':
       for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(toR + dr, toC + dc);
-      css = 'normal';
-      shake = 'small';
-      break;
-    }
-    case 'sapper': {
-      // X-pattern: 4 diagonal neighbors
+      css = 'normal'; break;
+    case 'sapper':
       add(toR - 1, toC - 1); add(toR - 1, toC + 1);
       add(toR + 1, toC - 1); add(toR + 1, toC + 1);
-      css = 'x';
-      shake = 'small';
-      break;
-    }
+      css = 'x'; break;
     case 'rocket': {
-      // Two squares past impact, in direction of travel
-      const dr = Math.sign(toR - fromR);
-      const dc = Math.sign(toC - fromC);
+      const dr = Math.sign(toR - fromR), dc = Math.sign(toC - fromC);
       add(toR + dr, toC + dc);
       add(toR + dr * 2, toC + dc * 2);
-      css = 'line';
-      shake = 'small';
-      break;
+      css = 'line'; break;
     }
-    case 'nuker': {
-      // 5x5 around landing — nuker dies in it
+    case 'nuker':
       for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) add(toR + dr, toC + dc);
-      css = 'nuke';
-      shake = 'big';
-      break;
-    }
+      css = 'nuke'; shake = 'big'; break;
     default:
       shake = null;
   }
@@ -533,21 +546,166 @@ function getBlast(piece, fromR, fromC, toR, toC) {
   return { squares, css, shake };
 }
 
-// ----- Move execution -----
+// ----- Pure move application (for AI simulation) -----
 
-async function makeMove(toR, toC) {
+function applyMoveOn(b, fromR, fromC, toR, toC) {
+  const nb = cloneBoard(b);
+  const piece = nb[fromR][fromC];
+  const isCapture = !!nb[toR][toC];
+  nb[fromR][fromC] = null;
+  nb[toR][toC] = piece;
+  if (piece.type === 'pawn') {
+    if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
+      piece.type = 'nuker';
+    }
+  }
+  if (isCapture) {
+    const blast = getBlast(piece, fromR, fromC, toR, toC);
+    for (const { r, c } of blast.squares) nb[r][c] = null;
+  }
+  return nb;
+}
+
+function allMovesFor(b, color) {
+  const out = [];
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const p = b[r][c];
+    if (!p || p.color !== color) continue;
+    for (const m of getMovesOn(b, r, c)) {
+      out.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, capture: m.capture });
+    }
+  }
+  return out;
+}
+
+function findKings(b) {
+  let w = false, k = false;
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const p = b[r][c];
+    if (p && p.type === 'king') {
+      if (p.color === 'white') w = true; else k = true;
+    }
+  }
+  return { white: w, black: k };
+}
+
+// ----- AI -----
+
+function evaluate(b, perspective) {
+  const kings = findKings(b);
+  const myKing = kings[perspective];
+  const oppColor = perspective === 'white' ? 'black' : 'white';
+  const oppKing = kings[oppColor];
+  if (!myKing && !oppKing) return 0;
+  if (!myKing) return -1e8;
+  if (!oppKing) return  1e8;
+
+  let myScore = 0, oppScore = 0;
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const p = b[r][c];
+    if (!p) continue;
+    const v = PIECE_VALUE[p.type];
+    if (p.color === perspective) myScore += v; else oppScore += v;
+  }
+  return myScore - oppScore;
+}
+
+function minimax(b, depth, color, alpha, beta, perspective) {
+  const kings = findKings(b);
+  if (!kings.white || !kings.black || depth === 0) return evaluate(b, perspective);
+
+  const moves = allMovesFor(b, color);
+  if (moves.length === 0) return evaluate(b, perspective);
+
+  const next = color === 'white' ? 'black' : 'white';
+  const isMax = color === perspective;
+
+  if (isMax) {
+    let best = -Infinity;
+    for (const m of moves) {
+      const nb = applyMoveOn(b, m.fromR, m.fromC, m.toR, m.toC);
+      const s = minimax(nb, depth - 1, next, alpha, beta, perspective);
+      if (s > best) best = s;
+      if (best > alpha) alpha = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const m of moves) {
+      const nb = applyMoveOn(b, m.fromR, m.fromC, m.toR, m.toC);
+      const s = minimax(nb, depth - 1, next, alpha, beta, perspective);
+      if (s < best) best = s;
+      if (best < beta) beta = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+function pickAIMove() {
+  const moves = allMovesFor(board, aiColor);
+  if (moves.length === 0) return null;
+
+  const depth = 2;
+  const next = aiColor === 'white' ? 'black' : 'white';
+  let bestScore = -Infinity;
+  let bestMoves = [];
+
+  // Shuffle for tiebreak variety
+  const shuffled = [...moves].sort(() => Math.random() - 0.5);
+
+  for (const m of shuffled) {
+    const nb = applyMoveOn(board, m.fromR, m.fromC, m.toR, m.toC);
+    let s = minimax(nb, depth - 1, next, -Infinity, Infinity, aiColor);
+    // Aggression bonus — favour explosions when otherwise equal
+    if (m.capture) s += 0.4;
+    s += Math.random() * 0.05;
+    if (s > bestScore) { bestScore = s; bestMoves = [m]; }
+    else if (s === bestScore) bestMoves.push(m);
+  }
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+}
+
+async function aiTurn() {
+  if (gameOver || !aiEnabled || turn !== aiColor || busy) return;
+  busy = true;
+  render();
+
+  // Brief "thinking" pause so it doesn't feel instant
+  await new Promise(r => setTimeout(r, 350));
+
+  const move = pickAIMove();
+  if (!move) {
+    gameOver = true;
+    winner = aiColor === 'white' ? 'black' : 'white';
+    busy = false;
+    render();
+    return;
+  }
+
+  // Flash the chosen piece + target square briefly
+  selected = { r: move.fromR, c: move.fromC };
+  legalMoves = [{ r: move.toR, c: move.toC, capture: !!board[move.toR][move.toC] }];
+  render();
+  await new Promise(r => setTimeout(r, 350));
+
+  busy = false; // makeMove sets its own
+  await makeMove(move.fromR, move.fromC, move.toR, move.toC);
+}
+
+// ----- Move execution (mutates live board, animates) -----
+
+async function makeMove(fromR, fromC, toR, toC) {
   if (busy || gameOver) return;
   busy = true;
 
-  const { r: fromR, c: fromC } = selected;
   const piece = board[fromR][fromC];
   const isCapture = !!board[toR][toC];
 
-  // Execute move
   board[fromR][fromC] = null;
   board[toR][toC] = piece;
 
-  // Pawn promotion → Nuker
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
       piece.type = 'nuker';
@@ -561,33 +719,26 @@ async function makeMove(toR, toC) {
   if (isCapture) {
     const blast = getBlast(piece, fromR, fromC, toR, toC);
     await playExplosion(blast);
-
-    // Detonate: clear every square in blast radius
-    for (const { r, c } of blast.squares) {
-      board[r][c] = null;
-    }
+    for (const { r, c } of blast.squares) board[r][c] = null;
   }
 
-  // Check kings
-  let whiteKing = false, blackKing = false;
-  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-    const p = board[r][c];
-    if (p && p.type === 'king') {
-      if (p.color === 'white') whiteKing = true; else blackKing = true;
-    }
-  }
-
-  if (!whiteKing || !blackKing) {
+  const kings = findKings(board);
+  if (!kings.white || !kings.black) {
     gameOver = true;
-    if (!whiteKing && !blackKing) winner = 'draw';
-    else if (!whiteKing) winner = 'black';
+    if (!kings.white && !kings.black) winner = 'draw';
+    else if (!kings.white) winner = 'black';
     else winner = 'white';
   } else {
     turn = turn === 'white' ? 'black' : 'white';
   }
 
-  render();
   busy = false;
+  render();
+
+  // Hand off to AI if its turn
+  if (!gameOver && aiEnabled && turn === aiColor) {
+    aiTurn();
+  }
 }
 
 // ----- Animation -----
@@ -603,7 +754,6 @@ function playExplosion(blast) {
       if (!sq) continue;
       const el = document.createElement('div');
       el.className = 'explosion ' + blast.css;
-      // Slight stagger for organic feel
       el.style.animationDelay = `${Math.random() * 80}ms`;
       sq.appendChild(el);
       overlays.push(el);
@@ -654,25 +804,36 @@ function render() {
   }
 
   const status = document.getElementById('status');
-  status.classList.remove('winner');
+  status.classList.remove('winner', 'thinking');
   if (gameOver) {
     status.classList.add('winner');
     if (winner === 'draw') status.textContent = '💥 DOUBLE KO — DRAW! 💥';
     else status.textContent = `🏆 ${winner.toUpperCase()} WINS! 🏆`;
+  } else if (aiEnabled && turn === aiColor && busy) {
+    status.classList.add('thinking');
+    status.textContent = '🤖 AI is thinking…';
   } else {
     const t = turn === 'white' ? 'White' : 'Black';
-    status.textContent = `${t}'s turn`;
+    const tag = (aiEnabled && turn === aiColor) ? ' (AI)' : '';
+    status.textContent = `${t}'s turn${tag}`;
   }
 }
 
 function onSquareClick(r, c) {
   if (busy || gameOver) return;
+  if (aiEnabled && turn === aiColor) return; // not your turn
+
   const piece = board[r][c];
 
   if (selected) {
     const move = legalMoves.find(m => m.r === r && m.c === c);
-    if (move) { makeMove(r, c); return; }
-
+    if (move) {
+      const from = selected;
+      selected = null;
+      legalMoves = [];
+      makeMove(from.r, from.c, r, c);
+      return;
+    }
     if (piece && piece.color === turn) {
       selected = { r, c };
       legalMoves = getMoves(r, c);
@@ -692,6 +853,13 @@ document.getElementById('reset').addEventListener('click', () => {
   if (busy) return;
   initBoard();
   render();
+  if (aiEnabled && turn === aiColor) aiTurn();
+});
+
+document.getElementById('ai-toggle').addEventListener('change', (e) => {
+  aiEnabled = e.target.checked;
+  render();
+  if (aiEnabled && !gameOver && turn === aiColor && !busy) aiTurn();
 });
 
 initBoard();
