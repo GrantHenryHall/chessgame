@@ -121,13 +121,16 @@ function getBlast(piece, fromR, fromC, toR, toC) {
 
   let css = 'normal';
   let shake = 'small';
+  let destructive = true;
 
   switch (piece.type) {
     case 'pawn':
-      // Small + blast around landing (4 orthogonal neighbors)
+      // Cosmetic puff around landing — visual only, no pieces destroyed
       add(toR - 1, toC); add(toR + 1, toC);
       add(toR, toC - 1); add(toR, toC + 1);
-      css = 'plus'; break;
+      css = 'plus';
+      destructive = false;
+      break;
     case 'knight':
       // Lateral blast: left + right of landing
       add(toR, toC - 1); add(toR, toC + 1);
@@ -153,7 +156,7 @@ function getBlast(piece, fromR, fromC, toR, toC) {
   }
 
   const squares = [...set].map(n => ({ r: Math.floor(n / SIZE), c: n % SIZE }));
-  return { squares, css, shake };
+  return { squares, css, shake, destructive };
 }
 
 // ----- Pure move application (for AI simulation) -----
@@ -171,7 +174,9 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
   }
   if (isCapture) {
     const blast = getBlast(piece, fromR, fromC, toR, toC);
-    for (const { r, c } of blast.squares) nb[r][c] = null;
+    if (blast.destructive) {
+      for (const { r, c } of blast.squares) nb[r][c] = null;
+    }
   }
   return nb;
 }
@@ -329,7 +334,9 @@ async function makeMove(fromR, fromC, toR, toC) {
   if (isCapture) {
     const blast = getBlast(piece, fromR, fromC, toR, toC);
     await playExplosion(blast);
-    for (const { r, c } of blast.squares) board[r][c] = null;
+    if (blast.destructive) {
+      for (const { r, c } of blast.squares) board[r][c] = null;
+    }
   }
 
   const kings = findKings(board);
