@@ -16,6 +16,8 @@ const PIECE_VALUE = {
   king: 10000, queen: 9, rook: 5, bishop: 3.5, knight: 3.5, pawn: 1,
 };
 
+const BLAST_CAPABLE = new Set(['knight', 'bishop', 'rook', 'queen']);
+
 let board, turn, selected, legalMoves, gameOver, winner, busy;
 let aiEnabled = true;
 const aiColor = 'black';
@@ -116,6 +118,11 @@ function getMoves(r, c) { return getMovesOn(board, r, c); }
 // ----- Explosions -----
 
 function getBlast(piece, fromR, fromC, toR, toC) {
+  // Spent pieces have already used their one blast — capture is silent.
+  if (piece.spent) {
+    return { squares: [], css: 'none', shake: null, destructive: false };
+  }
+
   const set = new Set();
   const add = (r, c) => { if (inBounds(r, c)) set.add(r * SIZE + c); };
 
@@ -170,6 +177,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
       piece.type = 'queen';
+      piece.spent = false;
     }
   }
   if (isCapture) {
@@ -177,6 +185,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
     if (blast.destructive) {
       for (const { r, c } of blast.squares) nb[r][c] = null;
     }
+    if (BLAST_CAPABLE.has(piece.type)) piece.spent = true;
   }
   return nb;
 }
@@ -219,7 +228,8 @@ function evaluate(b, perspective) {
   for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
     const p = b[r][c];
     if (!p) continue;
-    const v = PIECE_VALUE[p.type];
+    let v = PIECE_VALUE[p.type];
+    if (p.spent) v *= 0.7; // a spent piece is worth less — its charge is gone
     if (p.color === perspective) myScore += v; else oppScore += v;
   }
   return myScore - oppScore;
@@ -324,6 +334,7 @@ async function makeMove(fromR, fromC, toR, toC) {
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
       piece.type = 'queen';
+      piece.spent = false;
     }
   }
 
@@ -337,6 +348,7 @@ async function makeMove(fromR, fromC, toR, toC) {
     if (blast.destructive) {
       for (const { r, c } of blast.squares) board[r][c] = null;
     }
+    if (BLAST_CAPABLE.has(piece.type)) piece.spent = true;
   }
 
   const kings = findKings(board);
@@ -361,6 +373,7 @@ async function makeMove(fromR, fromC, toR, toC) {
 // ----- Animation -----
 
 function playExplosion(blast) {
+  if (!blast.squares.length) return Promise.resolve();
   return new Promise(resolve => {
     const boardEl = document.getElementById('board');
     const wrap = document.getElementById('shake');
@@ -410,8 +423,10 @@ function render() {
       if (p) {
         const pe = document.createElement('div');
         pe.className = 'piece ' + p.color;
+        if (BLAST_CAPABLE.has(p.type) && !p.spent) pe.classList.add('charged');
         pe.textContent = PIECE_INFO[p.type].symbol;
-        pe.title = `${p.color} ${PIECE_INFO[p.type].name}`;
+        const state = (BLAST_CAPABLE.has(p.type) && p.spent) ? ' (spent)' : '';
+        pe.title = `${p.color} ${PIECE_INFO[p.type].name}${state}`;
         sq.appendChild(pe);
       }
 

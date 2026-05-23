@@ -160,17 +160,17 @@ h1 {
      0  0   10px rgba(255, 90, 0, 0.55);
 }
 
-/* Smoldering fuse ember — small flicker at top-right of every piece */
-.piece::after {
+/* Lit fuse ember — only on pieces with an unspent blast charge */
+.piece.charged::after {
   content: '';
   position: absolute;
   top: 4px;
   right: 6px;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff6a00 70%, transparent 100%);
-  box-shadow: 0 0 6px 1px rgba(255, 140, 0, 0.8);
+  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff3a00 75%, transparent 100%);
+  box-shadow: 0 0 8px 2px rgba(255, 100, 0, 0.9);
   animation: ember 2.2s ease-in-out infinite;
 }
 
@@ -400,7 +400,7 @@ h1 {
 
   <section class="legend">
     <h2>How it works</h2>
-    <p class="tagline">Standard chess pieces — but each one detonates on capture. Movement is normal chess; the blast pattern is the twist. Explosions don't care which side a piece is on.</p>
+    <p class="tagline">Standard chess pieces — but each Knight, Bishop, Rook and Queen detonates on capture <b>once per game</b>. Look for the flickering ember: lit means the blast is charged, dark means it's been spent. Spent pieces still capture normally, just without fireworks.</p>
     <div class="legend-grid">
       <div class="legend-item">
         <span class="lg-icon piece-icon">♚</span>
@@ -412,19 +412,19 @@ h1 {
       </div>
       <div class="legend-item">
         <span class="lg-icon piece-icon">♞</span>
-        <div><b>Knight</b><br>L-shaped jumps. On capture: blast hits squares <b>left + right</b> of impact.</div>
+        <div><b>Knight</b><br>L-shaped jumps. <b>First capture</b>: blast hits squares <b>left + right</b> of impact. After that the blast is spent.</div>
       </div>
       <div class="legend-item">
         <span class="lg-icon piece-icon">♝</span>
-        <div><b>Bishop</b><br>Slides diagonally. On capture: blast hits squares <b>above + below</b> impact.</div>
+        <div><b>Bishop</b><br>Slides diagonally. <b>First capture</b>: blast hits squares <b>above + below</b> impact. One-shot.</div>
       </div>
       <div class="legend-item">
         <span class="lg-icon piece-icon">♜</span>
-        <div><b>Rook</b><br>Slides orthogonally. On capture: <b>+ blast</b> hits all 4 orthogonal neighbors of impact.</div>
+        <div><b>Rook</b><br>Slides orthogonally. <b>First capture</b>: <b>+ blast</b> hits all 4 orthogonal neighbors of impact. One-shot.</div>
       </div>
       <div class="legend-item">
         <span class="lg-icon piece-icon">♛</span>
-        <div><b>Queen</b><br>Slides in all 8 directions. On capture: <b>star blast</b> hits all 8 neighbors of impact (3×3 around target).</div>
+        <div><b>Queen</b><br>Slides in all 8 directions. <b>First capture</b>: <b>star blast</b> hits all 8 neighbors of impact. One-shot — spend it wisely.</div>
       </div>
     </div>
     <p class="warning">⚠ Every blast kills <b>everything</b> in its radius. Watch where you put your king.</p>
@@ -448,6 +448,8 @@ const PIECE_INFO = {
 const PIECE_VALUE = {
   king: 10000, queen: 9, rook: 5, bishop: 3.5, knight: 3.5, pawn: 1,
 };
+
+const BLAST_CAPABLE = new Set(['knight', 'bishop', 'rook', 'queen']);
 
 let board, turn, selected, legalMoves, gameOver, winner, busy;
 let aiEnabled = true;
@@ -549,6 +551,11 @@ function getMoves(r, c) { return getMovesOn(board, r, c); }
 // ----- Explosions -----
 
 function getBlast(piece, fromR, fromC, toR, toC) {
+  // Spent pieces have already used their one blast — capture is silent.
+  if (piece.spent) {
+    return { squares: [], css: 'none', shake: null, destructive: false };
+  }
+
   const set = new Set();
   const add = (r, c) => { if (inBounds(r, c)) set.add(r * SIZE + c); };
 
@@ -603,6 +610,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
       piece.type = 'queen';
+      piece.spent = false;
     }
   }
   if (isCapture) {
@@ -610,6 +618,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
     if (blast.destructive) {
       for (const { r, c } of blast.squares) nb[r][c] = null;
     }
+    if (BLAST_CAPABLE.has(piece.type)) piece.spent = true;
   }
   return nb;
 }
@@ -652,7 +661,8 @@ function evaluate(b, perspective) {
   for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
     const p = b[r][c];
     if (!p) continue;
-    const v = PIECE_VALUE[p.type];
+    let v = PIECE_VALUE[p.type];
+    if (p.spent) v *= 0.7; // a spent piece is worth less — its charge is gone
     if (p.color === perspective) myScore += v; else oppScore += v;
   }
   return myScore - oppScore;
@@ -757,6 +767,7 @@ async function makeMove(fromR, fromC, toR, toC) {
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
       piece.type = 'queen';
+      piece.spent = false;
     }
   }
 
@@ -770,6 +781,7 @@ async function makeMove(fromR, fromC, toR, toC) {
     if (blast.destructive) {
       for (const { r, c } of blast.squares) board[r][c] = null;
     }
+    if (BLAST_CAPABLE.has(piece.type)) piece.spent = true;
   }
 
   const kings = findKings(board);
@@ -794,6 +806,7 @@ async function makeMove(fromR, fromC, toR, toC) {
 // ----- Animation -----
 
 function playExplosion(blast) {
+  if (!blast.squares.length) return Promise.resolve();
   return new Promise(resolve => {
     const boardEl = document.getElementById('board');
     const wrap = document.getElementById('shake');
@@ -843,8 +856,10 @@ function render() {
       if (p) {
         const pe = document.createElement('div');
         pe.className = 'piece ' + p.color;
+        if (BLAST_CAPABLE.has(p.type) && !p.spent) pe.classList.add('charged');
         pe.textContent = PIECE_INFO[p.type].symbol;
-        pe.title = `${p.color} ${PIECE_INFO[p.type].name}`;
+        const state = (BLAST_CAPABLE.has(p.type) && p.spent) ? ' (spent)' : '';
+        pe.title = `${p.color} ${PIECE_INFO[p.type].name}${state}`;
         sq.appendChild(pe);
       }
 

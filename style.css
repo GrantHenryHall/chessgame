@@ -153,17 +153,17 @@ h1 {
      0  0   10px rgba(255, 90, 0, 0.55);
 }
 
-/* Smoldering fuse ember — small flicker at top-right of every piece */
-.piece::after {
+/* Lit fuse ember — only on pieces with an unspent blast charge */
+.piece.charged::after {
   content: '';
   position: absolute;
   top: 4px;
   right: 6px;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff6a00 70%, transparent 100%);
-  box-shadow: 0 0 6px 1px rgba(255, 140, 0, 0.8);
+  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff3a00 75%, transparent 100%);
+  box-shadow: 0 0 8px 2px rgba(255, 100, 0, 0.9);
   animation: ember 2.2s ease-in-out infinite;
 }
 
