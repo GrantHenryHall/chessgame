@@ -131,13 +131,6 @@ function getBlast(piece, fromR, fromC, toR, toC) {
   let destructive = true;
 
   switch (piece.type) {
-    case 'pawn':
-      // Cosmetic puff around landing — visual only, no pieces destroyed
-      add(toR - 1, toC); add(toR + 1, toC);
-      add(toR, toC - 1); add(toR, toC + 1);
-      css = 'plus';
-      destructive = false;
-      break;
     case 'knight':
       // Lateral blast: left + right of landing
       add(toR, toC - 1); add(toR, toC + 1);
@@ -146,19 +139,24 @@ function getBlast(piece, fromR, fromC, toR, toC) {
       // Vertical blast: above + below landing
       add(toR - 1, toC); add(toR + 1, toC);
       css = 'normal'; break;
-    case 'rook':
-      // Cross blast: all 4 orthogonal neighbors of landing
-      add(toR - 1, toC); add(toR + 1, toC);
-      add(toR, toC - 1); add(toR, toC + 1);
-      css = 'normal'; shake = 'small'; break;
-    case 'queen':
-      // Star blast: all 8 neighbors of landing
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-        if (!dr && !dc) continue;
+    case 'rook': {
+      // Three of the four orthogonal neighbors — skip the one in front
+      // (the direction the rook moved toward the target)
+      const fdr = Math.sign(toR - fromR);
+      const fdc = Math.sign(toC - fromC);
+      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        if (dr === fdr && dc === fdc) continue; // skip the forward square
         add(toR + dr, toC + dc);
       }
+      css = 'normal'; shake = 'small'; break;
+    }
+    case 'queen':
+      // X blast: 4 diagonal neighbors of landing
+      add(toR - 1, toC - 1); add(toR - 1, toC + 1);
+      add(toR + 1, toC - 1); add(toR + 1, toC + 1);
       css = 'nuke'; shake = 'big'; break;
     default:
+      // pawn, king, anything else — no blast
       shake = null;
   }
 
