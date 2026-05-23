@@ -115,33 +115,61 @@ h1 {
 }
 
 .piece {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: 48px;
+  line-height: 1;
   user-select: none;
   pointer-events: none;
   position: relative;
   z-index: 1;
-  transition: transform 0.12s;
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols", "DejaVu Sans", sans-serif;
+  transition: transform 0.12s, text-shadow 0.2s;
 }
 
 .square:hover .piece { transform: scale(1.08); }
 
 .piece.white {
-  background: radial-gradient(circle at 35% 30%, #ffffff, #d8d8d8 70%, #aaaaaa);
-  box-shadow:
-    0 3px 6px rgba(0,0,0,0.45),
-    inset 0 0 0 2px #888;
+  color: #fafafa;
+  text-shadow:
+    -1px -1px 0 #1a0d05,
+     1px -1px 0 #1a0d05,
+    -1px  1px 0 #1a0d05,
+     1px  1px 0 #1a0d05,
+     0  2px 3px rgba(0,0,0,0.55),
+     0  0   10px rgba(255, 140, 0, 0.5);
 }
 .piece.black {
-  background: radial-gradient(circle at 35% 30%, #555, #1a1a1a 70%, #000);
-  box-shadow:
-    0 3px 6px rgba(0,0,0,0.7),
-    inset 0 0 0 2px #000;
+  color: #1a1a1a;
+  text-shadow:
+    -1px -1px 0 #fff5d6,
+     1px -1px 0 #fff5d6,
+    -1px  1px 0 #fff5d6,
+     1px  1px 0 #fff5d6,
+     0  2px 3px rgba(0,0,0,0.55),
+     0  0   10px rgba(255, 90, 0, 0.55);
+}
+
+/* Smoldering fuse ember — small flicker at top-right of every piece */
+.piece::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff6a00 70%, transparent 100%);
+  box-shadow: 0 0 6px 1px rgba(255, 140, 0, 0.8);
+  animation: ember 2.2s ease-in-out infinite;
+}
+
+@keyframes ember {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50%      { opacity: 1;    transform: scale(1.2); }
 }
 
 /* Explosions */
@@ -316,10 +344,20 @@ h1 {
   line-height: 1.4;
 }
 .lg-icon {
-  font-size: 28px;
+  font-size: 32px;
   flex-shrink: 0;
   width: 38px;
   text-align: center;
+  line-height: 1;
+}
+.piece-icon {
+  color: #fafafa;
+  text-shadow:
+    -1px -1px 0 #1a0d05,
+     1px -1px 0 #1a0d05,
+    -1px  1px 0 #1a0d05,
+     1px  1px 0 #1a0d05,
+     0 0 8px rgba(255, 140, 0, 0.6);
 }
 .warning {
   margin-top: 14px;

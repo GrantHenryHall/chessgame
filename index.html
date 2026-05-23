@@ -22,31 +22,31 @@
 
   <section class="legend">
     <h2>How it works</h2>
-    <p class="tagline">Pawns and Kings move normally. Everything else has been replaced with an explosive. Every capture causes a detonation — and explosions don't care which side a piece is on.</p>
+    <p class="tagline">Standard chess pieces — but each one detonates on capture. Movement is normal chess; the blast pattern is the twist. Explosions don't care which side a piece is on.</p>
     <div class="legend-grid">
       <div class="legend-item">
-        <span class="lg-icon">👑</span>
-        <div><b>King</b><br>Standard king, moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
+        <span class="lg-icon piece-icon">♚</span>
+        <div><b>King</b><br>Moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🪖</span>
-        <div><b>Pawn</b><br>Moves like a pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hitting the 4 orthogonal neighbors of the target. Promotes to ☢️ Nuker at the end rank.</div>
+        <span class="lg-icon piece-icon">♟</span>
+        <div><b>Pawn</b><br>Standard pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hits the 4 orthogonal neighbors of impact. Promotes to ♛ Queen at the end rank.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">💣</span>
-        <div><b>Bomber</b> <i>(knight)</i><br>L-shaped jumps. On capture: <b>3×3 blast</b> centered on the landing square. The bomber dies in its own explosion.</div>
+        <span class="lg-icon piece-icon">♞</span>
+        <div><b>Knight</b><br>L-shaped jumps. On capture: blast hits squares <b>left + right</b> of impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🧨</span>
-        <div><b>Sapper</b> <i>(bishop)</i><br>Slides diagonally. On capture: <b>X-pattern</b> shrapnel hits the 4 diagonal neighbors of the target. Sapper survives.</div>
+        <span class="lg-icon piece-icon">♝</span>
+        <div><b>Bishop</b><br>Slides diagonally. On capture: blast hits squares <b>above + below</b> impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🚀</span>
-        <div><b>Rocket</b> <i>(rook)</i><br>Slides orthogonally. On capture: blast <b>continues 2 more squares</b> in the firing direction, vaporizing whatever stands behind. Rocket survives at the impact site.</div>
+        <span class="lg-icon piece-icon">♜</span>
+        <div><b>Rook</b><br>Slides orthogonally. On capture: <b>+ blast</b> hits all 4 orthogonal neighbors of impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">☢️</span>
-        <div><b>Nuker</b> <i>(queen)</i><br>Slides in all 8 directions. On capture: <b>5×5 nuclear blast</b> — total annihilation. The nuker dies in the fallout.</div>
+        <span class="lg-icon piece-icon">♛</span>
+        <div><b>Queen</b><br>Slides in all 8 directions. On capture: <b>star blast</b> hits all 8 neighbors of impact (3×3 around target).</div>
       </div>
     </div>
     <p class="warning">⚠ Every blast kills <b>everything</b> in its radius. Watch where you put your king.</p>

@@ -4,16 +4,16 @@
 const SIZE = 8;
 
 const PIECE_INFO = {
-  king:   { symbol: '👑', name: 'King' },
-  pawn:   { symbol: '🪖', name: 'Pawn' },
-  bomber: { symbol: '💣', name: 'Bomber' },  // replaces knight
-  sapper: { symbol: '🧨', name: 'Sapper' },  // replaces bishop
-  rocket: { symbol: '🚀', name: 'Rocket' },  // replaces rook
-  nuker:  { symbol: '☢️', name: 'Nuker'  },  // replaces queen
+  king:   { symbol: '♚', name: 'King' },
+  pawn:   { symbol: '♟', name: 'Pawn' },
+  knight: { symbol: '♞', name: 'Knight' },
+  bishop: { symbol: '♝', name: 'Bishop' },
+  rook:   { symbol: '♜', name: 'Rook' },
+  queen:  { symbol: '♛', name: 'Queen' },
 };
 
 const PIECE_VALUE = {
-  king: 10000, nuker: 9, rocket: 5, sapper: 3.5, bomber: 3.5, pawn: 1,
+  king: 10000, queen: 9, rook: 5, bishop: 3.5, knight: 3.5, pawn: 1,
 };
 
 let board, turn, selected, legalMoves, gameOver, winner, busy;
@@ -24,7 +24,7 @@ const aiColor = 'black';
 
 function initBoard() {
   board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  const backRank = ['rocket','bomber','sapper','nuker','king','sapper','bomber','rocket'];
+  const backRank = ['rook','knight','bishop','queen','king','bishop','knight','rook'];
   for (let c = 0; c < SIZE; c++) {
     board[0][c] = { type: backRank[c], color: 'black' };
     board[1][c] = { type: 'pawn',      color: 'black' };
@@ -92,7 +92,7 @@ function getMovesOn(b, r, c) {
         moves.push({ r: nr, c: nc, capture: true });
       }
     }
-  } else if (type === 'bomber') {
+  } else if (type === 'knight') {
     const jumps = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
     for (const [dr, dc] of jumps) {
       const nr = r + dr, nc = c + dc;
@@ -100,11 +100,11 @@ function getMovesOn(b, r, c) {
       const t = b[nr][nc];
       if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
     }
-  } else if (type === 'sapper') {
+  } else if (type === 'bishop') {
     slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
-  } else if (type === 'rocket') {
+  } else if (type === 'rook') {
     slide([[-1,0],[1,0],[0,-1],[0,1]]);
-  } else if (type === 'nuker') {
+  } else if (type === 'queen') {
     slide([[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]);
   }
 
@@ -124,24 +124,29 @@ function getBlast(piece, fromR, fromC, toR, toC) {
 
   switch (piece.type) {
     case 'pawn':
+      // Small + blast around landing (4 orthogonal neighbors)
       add(toR - 1, toC); add(toR + 1, toC);
       add(toR, toC - 1); add(toR, toC + 1);
       css = 'plus'; break;
-    case 'bomber':
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(toR + dr, toC + dc);
+    case 'knight':
+      // Lateral blast: left + right of landing
+      add(toR, toC - 1); add(toR, toC + 1);
       css = 'normal'; break;
-    case 'sapper':
-      add(toR - 1, toC - 1); add(toR - 1, toC + 1);
-      add(toR + 1, toC - 1); add(toR + 1, toC + 1);
-      css = 'x'; break;
-    case 'rocket': {
-      const dr = Math.sign(toR - fromR), dc = Math.sign(toC - fromC);
-      add(toR + dr, toC + dc);
-      add(toR + dr * 2, toC + dc * 2);
-      css = 'line'; break;
-    }
-    case 'nuker':
-      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) add(toR + dr, toC + dc);
+    case 'bishop':
+      // Vertical blast: above + below landing
+      add(toR - 1, toC); add(toR + 1, toC);
+      css = 'normal'; break;
+    case 'rook':
+      // Cross blast: all 4 orthogonal neighbors of landing
+      add(toR - 1, toC); add(toR + 1, toC);
+      add(toR, toC - 1); add(toR, toC + 1);
+      css = 'normal'; shake = 'small'; break;
+    case 'queen':
+      // Star blast: all 8 neighbors of landing
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        add(toR + dr, toC + dc);
+      }
       css = 'nuke'; shake = 'big'; break;
     default:
       shake = null;
@@ -161,7 +166,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
   nb[toR][toC] = piece;
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
-      piece.type = 'nuker';
+      piece.type = 'queen';
     }
   }
   if (isCapture) {
@@ -313,7 +318,7 @@ async function makeMove(fromR, fromC, toR, toC) {
 
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
-      piece.type = 'nuker';
+      piece.type = 'queen';
     }
   }
 

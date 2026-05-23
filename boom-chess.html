@@ -122,33 +122,61 @@ h1 {
 }
 
 .piece {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: 48px;
+  line-height: 1;
   user-select: none;
   pointer-events: none;
   position: relative;
   z-index: 1;
-  transition: transform 0.12s;
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols", "DejaVu Sans", sans-serif;
+  transition: transform 0.12s, text-shadow 0.2s;
 }
 
 .square:hover .piece { transform: scale(1.08); }
 
 .piece.white {
-  background: radial-gradient(circle at 35% 30%, #ffffff, #d8d8d8 70%, #aaaaaa);
-  box-shadow:
-    0 3px 6px rgba(0,0,0,0.45),
-    inset 0 0 0 2px #888;
+  color: #fafafa;
+  text-shadow:
+    -1px -1px 0 #1a0d05,
+     1px -1px 0 #1a0d05,
+    -1px  1px 0 #1a0d05,
+     1px  1px 0 #1a0d05,
+     0  2px 3px rgba(0,0,0,0.55),
+     0  0   10px rgba(255, 140, 0, 0.5);
 }
 .piece.black {
-  background: radial-gradient(circle at 35% 30%, #555, #1a1a1a 70%, #000);
-  box-shadow:
-    0 3px 6px rgba(0,0,0,0.7),
-    inset 0 0 0 2px #000;
+  color: #1a1a1a;
+  text-shadow:
+    -1px -1px 0 #fff5d6,
+     1px -1px 0 #fff5d6,
+    -1px  1px 0 #fff5d6,
+     1px  1px 0 #fff5d6,
+     0  2px 3px rgba(0,0,0,0.55),
+     0  0   10px rgba(255, 90, 0, 0.55);
+}
+
+/* Smoldering fuse ember — small flicker at top-right of every piece */
+.piece::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffd54a 40%, #ff6a00 70%, transparent 100%);
+  box-shadow: 0 0 6px 1px rgba(255, 140, 0, 0.8);
+  animation: ember 2.2s ease-in-out infinite;
+}
+
+@keyframes ember {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50%      { opacity: 1;    transform: scale(1.2); }
 }
 
 /* Explosions */
@@ -323,10 +351,20 @@ h1 {
   line-height: 1.4;
 }
 .lg-icon {
-  font-size: 28px;
+  font-size: 32px;
   flex-shrink: 0;
   width: 38px;
   text-align: center;
+  line-height: 1;
+}
+.piece-icon {
+  color: #fafafa;
+  text-shadow:
+    -1px -1px 0 #1a0d05,
+     1px -1px 0 #1a0d05,
+    -1px  1px 0 #1a0d05,
+     1px  1px 0 #1a0d05,
+     0 0 8px rgba(255, 140, 0, 0.6);
 }
 .warning {
   margin-top: 14px;
@@ -362,31 +400,31 @@ h1 {
 
   <section class="legend">
     <h2>How it works</h2>
-    <p class="tagline">Pawns and Kings move normally. Everything else has been replaced with an explosive. Every capture causes a detonation — and explosions don't care which side a piece is on.</p>
+    <p class="tagline">Standard chess pieces — but each one detonates on capture. Movement is normal chess; the blast pattern is the twist. Explosions don't care which side a piece is on.</p>
     <div class="legend-grid">
       <div class="legend-item">
-        <span class="lg-icon">👑</span>
-        <div><b>King</b><br>Standard king, moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
+        <span class="lg-icon piece-icon">♚</span>
+        <div><b>King</b><br>Moves one square in any direction. <b>Lose it and you lose.</b> No explosion.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🪖</span>
-        <div><b>Pawn</b><br>Moves like a pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hitting the 4 orthogonal neighbors of the target. Promotes to ☢️ Nuker at the end rank.</div>
+        <span class="lg-icon piece-icon">♟</span>
+        <div><b>Pawn</b><br>Standard pawn (forward 1, or 2 from start, captures diagonally). On capture: <b>small + blast</b> hits the 4 orthogonal neighbors of impact. Promotes to ♛ Queen at the end rank.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">💣</span>
-        <div><b>Bomber</b> <i>(knight)</i><br>L-shaped jumps. On capture: <b>3×3 blast</b> centered on the landing square. The bomber dies in its own explosion.</div>
+        <span class="lg-icon piece-icon">♞</span>
+        <div><b>Knight</b><br>L-shaped jumps. On capture: blast hits squares <b>left + right</b> of impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🧨</span>
-        <div><b>Sapper</b> <i>(bishop)</i><br>Slides diagonally. On capture: <b>X-pattern</b> shrapnel hits the 4 diagonal neighbors of the target. Sapper survives.</div>
+        <span class="lg-icon piece-icon">♝</span>
+        <div><b>Bishop</b><br>Slides diagonally. On capture: blast hits squares <b>above + below</b> impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">🚀</span>
-        <div><b>Rocket</b> <i>(rook)</i><br>Slides orthogonally. On capture: blast <b>continues 2 more squares</b> in the firing direction, vaporizing whatever stands behind. Rocket survives at the impact site.</div>
+        <span class="lg-icon piece-icon">♜</span>
+        <div><b>Rook</b><br>Slides orthogonally. On capture: <b>+ blast</b> hits all 4 orthogonal neighbors of impact.</div>
       </div>
       <div class="legend-item">
-        <span class="lg-icon">☢️</span>
-        <div><b>Nuker</b> <i>(queen)</i><br>Slides in all 8 directions. On capture: <b>5×5 nuclear blast</b> — total annihilation. The nuker dies in the fallout.</div>
+        <span class="lg-icon piece-icon">♛</span>
+        <div><b>Queen</b><br>Slides in all 8 directions. On capture: <b>star blast</b> hits all 8 neighbors of impact (3×3 around target).</div>
       </div>
     </div>
     <p class="warning">⚠ Every blast kills <b>everything</b> in its radius. Watch where you put your king.</p>
@@ -399,16 +437,16 @@ h1 {
 const SIZE = 8;
 
 const PIECE_INFO = {
-  king:   { symbol: '👑', name: 'King' },
-  pawn:   { symbol: '🪖', name: 'Pawn' },
-  bomber: { symbol: '💣', name: 'Bomber' },  // replaces knight
-  sapper: { symbol: '🧨', name: 'Sapper' },  // replaces bishop
-  rocket: { symbol: '🚀', name: 'Rocket' },  // replaces rook
-  nuker:  { symbol: '☢️', name: 'Nuker'  },  // replaces queen
+  king:   { symbol: '♚', name: 'King' },
+  pawn:   { symbol: '♟', name: 'Pawn' },
+  knight: { symbol: '♞', name: 'Knight' },
+  bishop: { symbol: '♝', name: 'Bishop' },
+  rook:   { symbol: '♜', name: 'Rook' },
+  queen:  { symbol: '♛', name: 'Queen' },
 };
 
 const PIECE_VALUE = {
-  king: 10000, nuker: 9, rocket: 5, sapper: 3.5, bomber: 3.5, pawn: 1,
+  king: 10000, queen: 9, rook: 5, bishop: 3.5, knight: 3.5, pawn: 1,
 };
 
 let board, turn, selected, legalMoves, gameOver, winner, busy;
@@ -419,7 +457,7 @@ const aiColor = 'black';
 
 function initBoard() {
   board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  const backRank = ['rocket','bomber','sapper','nuker','king','sapper','bomber','rocket'];
+  const backRank = ['rook','knight','bishop','queen','king','bishop','knight','rook'];
   for (let c = 0; c < SIZE; c++) {
     board[0][c] = { type: backRank[c], color: 'black' };
     board[1][c] = { type: 'pawn',      color: 'black' };
@@ -487,7 +525,7 @@ function getMovesOn(b, r, c) {
         moves.push({ r: nr, c: nc, capture: true });
       }
     }
-  } else if (type === 'bomber') {
+  } else if (type === 'knight') {
     const jumps = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
     for (const [dr, dc] of jumps) {
       const nr = r + dr, nc = c + dc;
@@ -495,11 +533,11 @@ function getMovesOn(b, r, c) {
       const t = b[nr][nc];
       if (!t || t.color !== color) moves.push({ r: nr, c: nc, capture: !!t });
     }
-  } else if (type === 'sapper') {
+  } else if (type === 'bishop') {
     slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
-  } else if (type === 'rocket') {
+  } else if (type === 'rook') {
     slide([[-1,0],[1,0],[0,-1],[0,1]]);
-  } else if (type === 'nuker') {
+  } else if (type === 'queen') {
     slide([[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]);
   }
 
@@ -519,24 +557,29 @@ function getBlast(piece, fromR, fromC, toR, toC) {
 
   switch (piece.type) {
     case 'pawn':
+      // Small + blast around landing (4 orthogonal neighbors)
       add(toR - 1, toC); add(toR + 1, toC);
       add(toR, toC - 1); add(toR, toC + 1);
       css = 'plus'; break;
-    case 'bomber':
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(toR + dr, toC + dc);
+    case 'knight':
+      // Lateral blast: left + right of landing
+      add(toR, toC - 1); add(toR, toC + 1);
       css = 'normal'; break;
-    case 'sapper':
-      add(toR - 1, toC - 1); add(toR - 1, toC + 1);
-      add(toR + 1, toC - 1); add(toR + 1, toC + 1);
-      css = 'x'; break;
-    case 'rocket': {
-      const dr = Math.sign(toR - fromR), dc = Math.sign(toC - fromC);
-      add(toR + dr, toC + dc);
-      add(toR + dr * 2, toC + dc * 2);
-      css = 'line'; break;
-    }
-    case 'nuker':
-      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) add(toR + dr, toC + dc);
+    case 'bishop':
+      // Vertical blast: above + below landing
+      add(toR - 1, toC); add(toR + 1, toC);
+      css = 'normal'; break;
+    case 'rook':
+      // Cross blast: all 4 orthogonal neighbors of landing
+      add(toR - 1, toC); add(toR + 1, toC);
+      add(toR, toC - 1); add(toR, toC + 1);
+      css = 'normal'; shake = 'small'; break;
+    case 'queen':
+      // Star blast: all 8 neighbors of landing
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        add(toR + dr, toC + dc);
+      }
       css = 'nuke'; shake = 'big'; break;
     default:
       shake = null;
@@ -556,7 +599,7 @@ function applyMoveOn(b, fromR, fromC, toR, toC) {
   nb[toR][toC] = piece;
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
-      piece.type = 'nuker';
+      piece.type = 'queen';
     }
   }
   if (isCapture) {
@@ -708,7 +751,7 @@ async function makeMove(fromR, fromC, toR, toC) {
 
   if (piece.type === 'pawn') {
     if ((piece.color === 'white' && toR === 0) || (piece.color === 'black' && toR === SIZE - 1)) {
-      piece.type = 'nuker';
+      piece.type = 'queen';
     }
   }
 
