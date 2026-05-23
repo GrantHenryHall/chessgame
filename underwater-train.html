@@ -116,26 +116,26 @@
 
     <!-- Distant fish silhouettes (background) -->
     <g opacity="0.25" fill="#1a4a7a">
-      <!-- fish 1 -->
+      <!-- fish 1: moves left→right, faces right (tail on left) -->
       <g>
         <animateTransform attributeName="transform" type="translate"
           values="-60,0; 960,0; -60,0" dur="22s" repeatCount="indefinite"/>
         <ellipse cx="820" cy="120" rx="18" ry="7"/>
-        <polygon points="838,120 852,113 852,127"/>
+        <polygon points="802,120 788,113 788,127"/>
       </g>
-      <!-- fish 2 -->
+      <!-- fish 2: moves right→left, faces left (tail on right) -->
       <g>
         <animateTransform attributeName="transform" type="translate"
           values="960,0; -60,0; 960,0" dur="18s" repeatCount="indefinite"/>
         <ellipse cx="120" cy="160" rx="14" ry="5"/>
-        <polygon points="106,160 94,155 94,165"/>
+        <polygon points="134,160 148,155 148,165"/>
       </g>
-      <!-- fish 3 -->
+      <!-- fish 3: moves left→right, faces right (tail on left) -->
       <g>
         <animateTransform attributeName="transform" type="translate"
           values="-60,0; 960,0; -60,0" dur="30s" repeatCount="indefinite"/>
         <ellipse cx="500" cy="80" rx="10" ry="4"/>
-        <polygon points="510,80 520,76 520,84"/>
+        <polygon points="490,80 480,76 480,84"/>
       </g>
     </g>
 
@@ -241,8 +241,6 @@
         <circle cx="40" cy="133" r="16" fill="#0a0f2a" stroke="#3a5fc8" stroke-width="3"/>
         <circle cx="40" cy="133" r="8" fill="#1a2a6c" stroke="#3a5fc8" stroke-width="1.5"/>
         <circle cx="40" cy="133" r="3" fill="#5a8aff"/>
-        <animateTransform attributeName="transform" type="rotate"
-          values="0,40,133; 360,40,133" dur="1.2s" repeatCount="indefinite" additive="sum"/>
 
         <circle cx="100" cy="133" r="16" fill="#0a0f2a" stroke="#3a5fc8" stroke-width="3"/>
         <circle cx="100" cy="133" r="8" fill="#1a2a6c" stroke="#3a5fc8" stroke-width="1.5"/>
@@ -432,11 +430,11 @@
           <animateTransform attributeName="transform" type="translate"
             values="900,100; -100,140; 900,100" dur="14s" repeatCount="indefinite"/>
           <ellipse cx="0" cy="0" rx="12" ry="5"/>
-          <polygon points="-12,0 -22,-5 -22,5"/>
-          <ellipse cx="22" cy="-12" rx="10" ry="4"/>
-          <polygon points="12,-12 2,-16 2,-8"/>
-          <ellipse cx="18" cy="10" rx="9" ry="4"/>
-          <polygon points="9,10 -1,6 -1,14"/>
+          <polygon points="12,0 22,-5 22,5"/>
+          <ellipse cx="-22" cy="-12" rx="10" ry="4"/>
+          <polygon points="-12,-12 -2,-16 -2,-8"/>
+          <ellipse cx="-18" cy="10" rx="9" ry="4"/>
+          <polygon points="-9,10 1,6 1,14"/>
         </g>
       </g>
 
